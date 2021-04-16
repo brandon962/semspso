@@ -3,16 +3,16 @@ import random
 import math
 
 runs = 10
-iters = 300
+iters = 1000
 convergence = np.zeros(iters+1)
 regions = 4
 particles = 20
 
-func_c = 0
+func_c = 2
 alpha = 1
 beta = 1
 gamma = 1
-delta = 0.1
+delta = 0
 decay = 0.7
 
 # 0: origin, 1: fitness(0: origion , 1: personal best), 2:personal best, 3: speed
@@ -20,8 +20,8 @@ sol_types = 4
 # 0: exp_value, 1:ts/tns, 2: mean, 3: best, 4: ts, 5: tns
 region_types = 6
 degrees = 30
-grange = 30
-lrange = -30
+grange = 5.12
+lrange = -5.12
 solutions = np.zeros((regions, particles, sol_types, degrees))
 speed_init_rate = 0.1
 global_best = np.zeros((regions, 2, degrees))
@@ -126,6 +126,17 @@ def ackley():
                 sum1/degrees)) - math.exp(sum2/degrees) + 20 + math.exp(1)
 
 
+def rastrigin() :
+    global solutions
+    for r in range(regions):
+        for p in range(particles):
+            sum1 = 0
+            sum2 = 0
+            for d in range(degrees):
+                sum1 += solutions[r][p][0][d] ** 2
+                sum2 += math.cos(2*math.pi*solutions[r][p][0][d])
+            solutions[r][p][1][0] = 10*degrees + sum1 - 10 *sum2
+
 def init():
     global solutions, total_best_fit, global_best, region_exp
 
@@ -163,10 +174,22 @@ def move_particle():
                 now_place = solutions[r][p][0][d]
                 mutation_speed = abs(solutions[r][p][0][d] - int(solutions[r][p][0][d]))
                 move_speed = decay*solutions[r][p][3][d] + (alpha*random.random()*(global_best[r][0][d]-now_place)+beta*random.random()*(
-                    solutions[r][p][2][d]-now_place)+gamma*random.random()*(searcher_avg[d]-now_place)+delta*(random.uniform(-mutation_speed, mutation_speed)))
+                    solutions[r][p][2][d]-now_place)+gamma*random.random()*(searcher_avg[d]-now_place))
+                if random.uniform(0,1) < 0.5:
+                    move_speed += delta*(random.uniform(-mutation_speed, mutation_speed))
                 solutions[r][p][3][d] = move_speed
                 solutions[r][p][0][d] += move_speed
 
+
+def func():
+    if func_c == 0:
+        ackley()
+    elif func_c == 1:
+        sphere()
+    elif func_c == 2:
+        rastrigin()
+    else:
+        ackley()
 
 def update():
     update_personal_best()
@@ -179,13 +202,13 @@ if __name__ == "__main__":
     for run in range(runs):
         print("run : ", run+1)
         init()
-        ackley()
+        func()
         update()
         # print("iter : 0 , min : ", total_best_fit)
         convergence[0] += total_best_fit
         for iter in range(iters):
             move_particle()
-            ackley()
+            func()
             update()
             print("iter : ", iter+1, ", min : ", total_best_fit)
             convergence[iter+1] += total_best_fit
