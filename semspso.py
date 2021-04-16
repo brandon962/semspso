@@ -5,28 +5,29 @@ import math
 runs = 10
 iters = 1000
 convergence = np.zeros(iters+1)
-regions = 4
-particles = 20
+regions = 8
+particles = 30
 
-func_c = 2
+func_c = 3
 alpha = 1
 beta = 1
 gamma = 1
-delta = 0
-decay = 0.7
+delta = 1
+decay = 0.5
 
 # 0: origin, 1: fitness(0: origion , 1: personal best), 2:personal best, 3: speed
 sol_types = 4
 # 0: exp_value, 1:ts/tns, 2: mean, 3: best, 4: ts, 5: tns
 region_types = 6
 degrees = 30
-grange = 5.12
-lrange = -5.12
+grange = 10
+lrange = -10
 solutions = np.zeros((regions, particles, sol_types, degrees))
 speed_init_rate = 0.1
 global_best = np.zeros((regions, 2, degrees))
 global_dif = np.zeros((regions, degrees))
 global_change = np.zeros(regions)
+
 
 searchers = 8
 searcher_sol = np.zeros((searchers, 2), dtype=int)  # 0: groups, 1: particles
@@ -35,6 +36,9 @@ region_players = 2
 particle_players = particles
 region_exp = np.zeros((regions, region_types))
 total_best = np.zeros(degrees)
+
+mutation_default = (grange-lrange)/100
+mutation_change = 0.98
 
 
 def update_searcher():
@@ -125,6 +129,14 @@ def ackley():
             solutions[r][p][1][0] = -20*math.exp(-0.2*math.sqrt(
                 sum1/degrees)) - math.exp(sum2/degrees) + 20 + math.exp(1)
 
+def michalewicz():
+    for r in range(regions):
+        for p in range(particles):
+            sum1 = 0
+            sum2 = 0
+            for d in range(degrees):
+                sum1 -= math.sin(solutions[r][p][0][d]) * math.pow(math.sin((d*math.pow(solutions[r][p][0][d],2)/math.pi)),20)
+            solutions[r][p][1][0] = sum1
 
 def rastrigin() :
     global solutions
@@ -133,9 +145,20 @@ def rastrigin() :
             sum1 = 0
             sum2 = 0
             for d in range(degrees):
-                sum1 += solutions[r][p][0][d] ** 2
-                sum2 += math.cos(2*math.pi*solutions[r][p][0][d])
+                sum1 += (solutions[r][p][0][d]) ** 2
+                sum2 += math.cos(2*math.pi*(solutions[r][p][0][d]))
             solutions[r][p][1][0] = 10*degrees + sum1 - 10 *sum2
+
+def rosenbrock():
+    global solutions
+    for r in range(regions):
+        for p in range(particles):
+            sum1 = 0
+            sum2 = 0
+            for d in range(degrees-1):
+                sum1 += (solutions[r][p][0][d+1]-(solutions[r][p][0][d]*solutions[r][p][0][d]))*(solutions[r][p][0][d+1]-(solutions[r][p][0][d]*solutions[r][p][0][d]))
+                sum2 += (solutions[r][p][0][d]-1)*(solutions[r][p][0][d]-1)
+            solutions[r][p][1][0] = 100*sum1 + sum2
 
 def init():
     global solutions, total_best_fit, global_best, region_exp
@@ -161,6 +184,7 @@ def init():
 
 
 def move_particle():
+    global mutation_speed, global_dif
     for d in range(degrees):
         searcher_avg[d] = 0
         for s in range(searchers):
@@ -169,11 +193,22 @@ def move_particle():
         searcher_avg[d] /= searchers
 
     for r in range(regions):
+        mutation_speed = 0
+        # for p in range(particles):
+        #     for d in range(degrees):
+        #         if abs(total_best[d]-int(total_best[d])) > mutation_speed:
+        #             mutation_speed = abs(total_best[d]-int(total_best[d]))
         for p in range(particles):
             for d in range(degrees):
                 now_place = solutions[r][p][0][d]
-                mutation_speed = abs(solutions[r][p][0][d] - int(solutions[r][p][0][d]))
-                move_speed = decay*solutions[r][p][3][d] + (alpha*random.random()*(global_best[r][0][d]-now_place)+beta*random.random()*(
+                # mutation_speed = abs(solutions[r][random.randint(0,particles-1)][0][d] - solutions[r][random.randint(0,particles-1)][0][d])
+                # print(global_dif[r][d])
+                # if mutation_speed > 0.01 and mutation_speed < 0.5:
+                    # mutation_speed = 1 - mutation_speed
+                mutation_speed = abs(solutions[r][p][0][d]-int(solutions[r][p][0][d]))
+                # mutation_speed = abs(solutions[r][p][3][d])
+                # mutation_speed /= global_dif[r][d]
+                move_speed = decay*solutions[r][p][3][d] + (1-decay)*(alpha*random.random()*(global_best[r][0][d]-now_place)+beta*random.random()*(
                     solutions[r][p][2][d]-now_place)+gamma*random.random()*(searcher_avg[d]-now_place))
                 if random.uniform(0,1) < 0.5:
                     move_speed += delta*(random.uniform(-mutation_speed, mutation_speed))
@@ -188,6 +223,10 @@ def func():
         sphere()
     elif func_c == 2:
         rastrigin()
+    elif func_c == 3:
+        rosenbrock()
+    elif func_c == 4:
+        michalewicz()
     else:
         ackley()
 
@@ -212,9 +251,12 @@ if __name__ == "__main__":
             update()
             print("iter : ", iter+1, ", min : ", total_best_fit)
             convergence[iter+1] += total_best_fit
-        if total_best_fit > 0.001 :
-            print(total_best)
-            exit()
+            mutation_default *= mutation_change
+        print(total_best)
+        # if total_best_fit > 0.001 :
+        #     print(total_best)
+        #     print(mutation_speed)
+        #     exit()
     for iter in range(iters+1):
         convergence[iter] /= runs
         if iter % 50 == 0:
