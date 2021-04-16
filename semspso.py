@@ -3,11 +3,12 @@ import random
 import math
 
 runs = 10
-iters = 500
+iters = 300
 convergence = np.zeros(iters+1)
 regions = 4
 particles = 20
 
+func_c = 0
 alpha = 1
 beta = 1
 gamma = 1
@@ -159,8 +160,10 @@ def move_particle():
     for r in range(regions):
         for p in range(particles):
             for d in range(degrees):
-                move_speed = decay*solutions[r][p][3][d] + (alpha*random.random()*(global_best[r][0][d]-solutions[r][p][0][d])+beta*random.random()*(
-                    solutions[r][p][2][d]-solutions[r][p][0][d])+gamma*random.random()*(searcher_avg[d]-solutions[r][p][0][d])+delta*(random.uniform(-global_dif[r][d], global_dif[r][d])))
+                now_place = solutions[r][p][0][d]
+                mutation_speed = abs(solutions[r][p][0][d] - int(solutions[r][p][0][d]))
+                move_speed = decay*solutions[r][p][3][d] + (alpha*random.random()*(global_best[r][0][d]-now_place)+beta*random.random()*(
+                    solutions[r][p][2][d]-now_place)+gamma*random.random()*(searcher_avg[d]-now_place)+delta*(random.uniform(-mutation_speed, mutation_speed)))
                 solutions[r][p][3][d] = move_speed
                 solutions[r][p][0][d] += move_speed
 
@@ -184,9 +187,11 @@ if __name__ == "__main__":
             move_particle()
             ackley()
             update()
-            # print("iter : ", iter+1, ", min : ", total_best_fit)
+            print("iter : ", iter+1, ", min : ", total_best_fit)
             convergence[iter+1] += total_best_fit
-
+        if total_best_fit > 0.001 :
+            print(total_best)
+            exit()
     for iter in range(iters+1):
         convergence[iter] /= runs
         if iter % 50 == 0:
