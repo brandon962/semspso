@@ -2,18 +2,18 @@ import numpy as np
 import random
 import math
 
-runs = 10
+runs = 1
 iters = 1000
 convergence = np.zeros(iters+1)
-regions = 8
-particles = 30
+regions = 4
+particles = 50
 
 func_c = 3
 alpha = 1
 beta = 1
 gamma = 1
 delta = 1
-decay = 0.5
+decay = 0.7
 
 # 0: origin, 1: fitness(0: origion , 1: personal best), 2:personal best, 3: speed
 sol_types = 4
@@ -23,7 +23,7 @@ degrees = 30
 grange = 10
 lrange = -10
 solutions = np.zeros((regions, particles, sol_types, degrees))
-speed_init_rate = 0.1
+speed_init_rate = 0.00001
 global_best = np.zeros((regions, 2, degrees))
 global_dif = np.zeros((regions, degrees))
 global_change = np.zeros(regions)
@@ -67,8 +67,8 @@ def update_personal_best():
     global solutions
     for r in range(regions):
         for p in range(particles):
-            if solutions[r][p][0][0] < solutions[r][p][0][1]:
-                solutions[r][p][0][1] = solutions[r][p][0][0]
+            if solutions[r][p][1][0] < solutions[r][p][1][1]:
+                solutions[r][p][1][1] = solutions[r][p][1][0]
                 solutions[r][p][2] = solutions[r][p][0]
 
 
@@ -135,7 +135,7 @@ def michalewicz():
             sum1 = 0
             sum2 = 0
             for d in range(degrees):
-                sum1 -= math.sin(solutions[r][p][0][d]) * math.pow(math.sin((d*math.pow(solutions[r][p][0][d],2)/math.pi)),20)
+                sum1 -= math.sin(solutions[r][p][0][d]) * math.pow(math.sin(((d+1)*math.pow(solutions[r][p][0][d],2)/math.pi)),20)
             solutions[r][p][1][0] = sum1
 
 def rastrigin() :
@@ -163,17 +163,17 @@ def rosenbrock():
 def init():
     global solutions, total_best_fit, global_best, region_exp
 
+    solutions = np.zeros((regions, particles, sol_types, degrees))
     total_best_fit = 999999
     for r in range(regions):
         for p in range(particles):
-            solutions[r][p][0][1] = 9999999999
+            solutions[r][p][1][1] = 9999999999
     for r in range(regions):
         global_best[r][1][0] = 9999999999
     for r in range(regions):
         region_exp[r][4] = 1
         region_exp[r][5] = 1
 
-    solutions = np.zeros((regions, particles, sol_types, degrees))
     for r in range(regions):
         for p in range(particles):
             for d in range(degrees):
@@ -217,6 +217,14 @@ def move_particle():
 
 
 def func():
+
+    # solutions[0][0][0][0] = -4.97530916
+    # solutions[0][0][0][1] = -4.97530916
+    # michalewicz()
+    # print(solutions[0][0][1][0])
+    # exit()
+
+
     if func_c == 0:
         ackley()
     elif func_c == 1:
@@ -259,5 +267,4 @@ if __name__ == "__main__":
         #     exit()
     for iter in range(iters+1):
         convergence[iter] /= runs
-        if iter % 50 == 0:
-            print(convergence[iter])
+        # print(convergence[iter])
