@@ -1,29 +1,30 @@
 import numpy as np
 import random
 import math
+import pandas as pd
 
-runs = 1
-iters = 1000
+runs = 30
+iters = 4000
 convergence = np.zeros(iters+1)
 regions = 4
-particles = 50
+particles = 25
 
-func_c = 3
-alpha = 1
-beta = 1
-gamma = 1
-delta = 1
-decay = 0.7
+func_c = 2
+alpha = np.array([1,1,1,1])
+beta = np.array([1,1,1,1])
+gamma = np.array([1,1,1,1])
+delta = np.array([1,1,1,1])
+decay = np.array([0.7,0.7,0.7,0.7])
 
 # 0: origin, 1: fitness(0: origion , 1: personal best), 2:personal best, 3: speed
 sol_types = 4
 # 0: exp_value, 1:ts/tns, 2: mean, 3: best, 4: ts, 5: tns
 region_types = 6
 degrees = 30
-grange = 10
-lrange = -10
+grange = 30
+lrange = -30
 solutions = np.zeros((regions, particles, sol_types, degrees))
-speed_init_rate = 0.00001
+speed_init_rate = 0.000001
 global_best = np.zeros((regions, 2, degrees))
 global_dif = np.zeros((regions, degrees))
 global_change = np.zeros(regions)
@@ -156,8 +157,8 @@ def rosenbrock():
             sum1 = 0
             sum2 = 0
             for d in range(degrees-1):
-                sum1 += (solutions[r][p][0][d+1]-(solutions[r][p][0][d]*solutions[r][p][0][d]))*(solutions[r][p][0][d+1]-(solutions[r][p][0][d]*solutions[r][p][0][d]))
-                sum2 += (solutions[r][p][0][d]-1)*(solutions[r][p][0][d]-1)
+                sum1 += (solutions[r][p][0][d+1]-(solutions[r][p][0][d]**2))**2
+                sum2 += (solutions[r][p][0][d]-1)**2
             solutions[r][p][1][0] = 100*sum1 + sum2
 
 def init():
@@ -208,10 +209,10 @@ def move_particle():
                 mutation_speed = abs(solutions[r][p][0][d]-int(solutions[r][p][0][d]))
                 # mutation_speed = abs(solutions[r][p][3][d])
                 # mutation_speed /= global_dif[r][d]
-                move_speed = decay*solutions[r][p][3][d] + (1-decay)*(alpha*random.random()*(global_best[r][0][d]-now_place)+beta*random.random()*(
-                    solutions[r][p][2][d]-now_place)+gamma*random.random()*(searcher_avg[d]-now_place))
+                move_speed = decay[r%4]*solutions[r][p][3][d] + (1-decay[r%4])*(alpha[r%4]*random.random()*(global_best[r][0][d]-now_place)+beta[r%4]*random.random()*(
+                    solutions[r][p][2][d]-now_place)+gamma[r%4]*random.random()*(searcher_avg[d]-now_place))
                 if random.uniform(0,1) < 0.5:
-                    move_speed += delta*(random.uniform(-mutation_speed, mutation_speed))
+                    move_speed += delta[r%4]*(random.uniform(-mutation_speed, mutation_speed))
                 solutions[r][p][3][d] = move_speed
                 solutions[r][p][0][d] += move_speed
 
@@ -268,3 +269,14 @@ if __name__ == "__main__":
     for iter in range(iters+1):
         convergence[iter] /= runs
         # print(convergence[iter])
+    if func_c == 0:
+        pd.DataFrame(convergence).to_csv("./output/" + "ackley", header=None)
+    elif func_c == 1:
+        pd.DataFrame(convergence).to_csv("./output/" + "sphere", header=None)
+    elif func_c == 2:
+        pd.DataFrame(convergence).to_csv("./output/" + "rastrigin", header=None)
+    elif func_c == 3:
+        pd.DataFrame(convergence).to_csv("./output/" + "rosenbrock", header=None)
+    elif func_c == 4:
+        pd.DataFrame(convergence).to_csv("./output/" + "michalewicz", header=None)
+    
