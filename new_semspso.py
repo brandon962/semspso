@@ -10,7 +10,7 @@ iters = 10000000000000000000
 region_origin = 8
 regions = region_origin
 particles = 25
-evaluation_max = 400000
+evaluation_max = 400
 evaluation_stage = int(evaluation_max/regions)
 stage = 0
 stage_max = 7
@@ -255,4 +255,4 @@ if __name__ == "__main__":
         convergence[eva] /= runs
         # print(convergence[iter])
     pd.DataFrame(convergence).to_csv(
-        "./output/" + fname[func_c].lower(), header=None)
+        "./output/" + fname[func_c].lower() + ".txt", header=None)
