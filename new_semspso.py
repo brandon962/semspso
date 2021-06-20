@@ -10,7 +10,7 @@ iters = 10000000000000000000
 region_origin = 8
 regions = region_origin
 particles = 25
-evaluation_max = 400
+evaluation_max = 2000
 evaluation_stage = int(evaluation_max/regions)
 stage = 0
 stage_max = 7
@@ -19,7 +19,7 @@ evaluation = 0
 fname = {0: 'Ackley', 1: 'Rastrigin', 2: 'Sphere', 3: 'Rosenbrock', 4: 'Michalewitz',
          5: 'Griewank', 6: 'Schwefel', 7: 'Sum_squares', 8: 'Zakharov', 9: 'Powell'}
 
-func_c = 9
+func_c = 0
 
 alpha = np.array([1.5, 1, 1, 1, 1.5, 1, 1, 1])
 beta = np.array([1, 1.5, 1, 1, 1, 1.5, 1, 1])
@@ -34,18 +34,16 @@ region_types = 6
 degrees = 30
 grange = DOMAIN[fname[func_c]][1]
 lrange = DOMAIN[fname[func_c]][0]
-solutions = np.zeros((regions, particles, sol_types, degrees))
 speed_init_rate = 0.000001
+searchers = 8
+region_players = 2
+particle_players = int(particles/3)
+solutions = np.zeros((regions, particles, sol_types, degrees))
 global_best = np.zeros((regions, 2, degrees))
 global_dif = np.zeros((regions, degrees))
 global_change = np.zeros(regions)
-
-
-searchers = 8
 searcher_sol = np.zeros((searchers, 2), dtype=int)  # 0: groups, 1: particles
 searcher_avg = np.zeros(degrees)
-region_players = 2
-particle_players = int(particles/3)
 region_exp = np.zeros((regions, region_types))
 total_best = np.zeros(degrees)
 
@@ -126,10 +124,25 @@ def update_region_exp():
 
 def init():
     global solutions, total_best_fit, global_best, region_exp, evaluation, stage, region_origin, regions
+    global global_dif, global_change, searcher_sol, searcher_avg, total_best
+    global alpha, beta, gamma, delta, decay
     evaluation = 0
     stage = 0
     regions = region_origin
     solutions = np.zeros((regions, particles, sol_types, degrees))
+    global_best = np.zeros((regions, 2, degrees))
+    global_dif = np.zeros((regions, degrees))
+    global_change = np.zeros(regions)
+    searcher_sol = np.zeros((searchers, 2), dtype=int)  # 0: groups, 1: particles
+    searcher_avg = np.zeros(degrees)
+    region_exp = np.zeros((regions, region_types))
+    total_best = np.zeros(degrees)
+    solutions = np.zeros((regions, particles, sol_types, degrees))
+    alpha = np.array([1.5, 1, 1, 1, 1.5, 1, 1, 1])
+    beta = np.array([1, 1.5, 1, 1, 1, 1.5, 1, 1])
+    gamma = np.array([1, 1, 1.5, 1, 1, 1, 1.5, 1])
+    delta = np.array([1, 1, 1, 1, 1, 1, 1, 1])
+    decay = np.array([0.7, 0.7, 0.7, 0.7, 0.8, 0.8, 0.8, 0.8])
     total_best_fit = 999999
     for r in range(regions):
         for p in range(particles):
@@ -207,7 +220,6 @@ def delete_solutions():
     bad_region = 0
     if evaluation > (1+stage)*evaluation_stage:
         stage += 1
-        print(stage)
         for r in range(regions):
             if region_exp[r][0] > region_exp[bad_region][0]:
                 bad_region = r
@@ -221,6 +233,42 @@ def delete_solutions():
         region_exp = np.delete(region_exp, bad_region, 0)
         regions -= 1
 
+
+def pso(a,b,g,delt,dec):
+    global alpha, beta, gamma, delta, decay, mutation_default
+    alpha = np.array([1.5, 1, 1, 1, 1.5, 1, 1, 1])
+    beta = np.array([1, 1.5, 1, 1, 1, 1.5, 1, 1])
+    gamma = np.array([1, 1, 1.5, 1, 1, 1, 1.5, 1])
+    delta = np.array([1, 1, 1, 1, 1, 1, 1, 1])
+    decay = np.array([0.7, 0.7, 0.7, 0.7, 0.8, 0.8, 0.8, 0.8])
+
+    for run in range(runs):
+        init()
+        alpha = a
+        beta = b
+        gamma = g
+        delta = delt
+        decay = dec
+        func()
+        update()
+        # print("iter : 0 , min : ", total_best_fit)
+        convergence[0] += total_best_fit
+        for iter in range(iters):
+            move_particle()
+            func()
+            delete_solutions()
+            update()
+            convergence[iter+1] += total_best_fit
+            mutation_default *= mutation_change
+            if evaluation >= evaluation_max:
+                break
+        # if total_best_fit > 0.001 :
+        #     print(total_best)
+        #     print(mutation_speed)
+        #     exit()
+    for eva in range(evaluation_max+1):
+        convergence[eva] /= runs
+    return convergence[evaluation_max]
 
 
 if __name__ == "__main__":

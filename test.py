@@ -1,20 +1,52 @@
-import numpy as np
-from functions import *
+from new_semspso import *
 
 
-a = np.array([[1,2,3,4],[2,4,6,8],[3,6,9,12]])
+p_sol = np.zeros((10,5,8))
+p_v = np.zeros((10,5,8))
+p_p = np.zeros((10,5,8))
+p_pf = np.zeros(10)
+p_g = np.zeros((5,8))
+p_gf = 0
+fit = np.zeros(10)
 
-a = np.delete(a,1,0)
+for i in range(10):
+    for j in range(4):
+        for k in range(8):
+            p_sol[i][j][k] = random.random()*2
+            p_p[i][j][k] = p_sol[i][j][k].copy()
+    for k in range(8):
+        p_sol[i][4][k] = random.random()
+        p_p[i][j][k] = p_sol[i][4][k].copy()
 
-print(a[1])
+    fit[i] = pso(p_sol[i][0],p_sol[i][1],p_sol[i][2],p_sol[i][3],p_sol[i][4])
+    p_pf[i] = fit[i].copy()
+ 
+p_g = p_sol[np.argmin(fit)].copy()
+p_gf = fit[np.argmin(fit)].copy()
 
-# b = np.random.rand(3)*100
 
-# print(b)
-fname = {0: 'Ackley', 1: 'Rastrigin', 2: 'Sphere', 3: 'Rosenbrock', 4: 'Michalewitz',
-         5: 'Griewank', 6: 'Schwefel', 7: 'Sum_squares', 8: 'Zakharov', 9: 'Powell'}
 
-func_c = 4
-func_name = fname[func_c]
+a = 1.5
+b = 1.5
+d = 0.7 
 
-print(DOMAIN[fname[func_c]][0])
+for t in range(1000):
+    for i in range(10):
+        for j in range(4):
+            for k in range(8):
+                p_v[i][j][k] = p_v[i][j][k] * d + a*random.random()*(p_p[i][j][k]-p_sol[i][j][k])+b*random.random()*(p_g[j][k]-p_sol[i][j][k])
+                p_sol[i][j][k] += p_v[i][j][k]
+        
+        fit[i] = pso(p_sol[i][0],p_sol[i][1],p_sol[i][2],p_sol[i][3],p_sol[i][4])
+        if fit[i] < p_pf[i]:
+            p_pf[i] =  fit[i]
+            p_p[i] = p_sol[i].copy()
+    
+    temp = fit[np.argmin(fit)].copy()
+    if temp < p_gf:
+        p_g = p_sol[np.argmin(fit)].copy()
+        p_gf = fit[np.argmin(fit)].copy()
+
+print(p_g)
+print()
+print(p_gf)
